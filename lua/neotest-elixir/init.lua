@@ -2,6 +2,7 @@ local Path = require("plenary.path")
 local async = require("neotest.async")
 local lib = require("neotest.lib")
 local base = require("neotest-elixir.base")
+require("neotest-elixir.Erlang")
 
 ---@type neotest.Adapter
 local ElixirNeotestAdapter = { name = "neotest-elixir" }
@@ -100,7 +101,7 @@ function ElixirNeotestAdapter.build_spec(args)
 
   local output_dir = async.fn.tempname()
   Path:new(output_dir):mkdir()
-  local results_path = output_dir .. "/results"
+  local results_path = output_dir .. "/results_term"
   local x = io.open(results_path, "w")
   x:write("")
   x:close()
@@ -143,12 +144,19 @@ end
 function ElixirNeotestAdapter.results(spec, result)
   spec.context.stop_stream()
   local results = {}
+  print("path", spec.context.results_path)
+  print("result_code", result.code)
   if result.code == 0 or result.code == 2 then
     local data = lib.files.read_lines(spec.context.results_path)
 
+    print("size", #data)
     for _, line in ipairs(data) do
-      local decoded_result = vim.json.decode(line, { luanil = { object = true } })
-      results[decoded_result.id] = {
+      -- local decoded_result = vim.json.decode(line, { luanil = { object = true } })
+      local decoded_result = Erlang.decode(line)
+      print("decoded_status", decoded_result[Erlang.atom("status")])
+      print("decoded_output", decoded_result[Erlang.atom("output")])
+      print("decoded_id", decoded_result[Erlang.atom("id")])
+      results[decoded_result[Erlang.atom("id")]] = {
         status = decoded_result.status,
         output = decoded_result.output,
       }

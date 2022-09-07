@@ -11,12 +11,15 @@ defmodule NeotestElixirFormatter do
     output_dir = System.fetch_env!("NEOTEST_OUTPUT_DIR")
     File.mkdir_p!(output_dir)
     results_path = Path.join(output_dir, "results")
+    results_term_path = Path.join(output_dir, "results_term")
     results_io_device = File.open!(results_path, [:write, :utf8])
+    results_term_io_device = File.open!(results_term_path, [:write])
 
     config = %{
       output_dir: output_dir,
       results_path: results_path,
       results_io_device: results_io_device,
+      results_term_io_device: results_term_io_device,
       colors: colors(opts),
       test_counter: 0,
       failure_counter: 0
@@ -39,7 +42,10 @@ defmodule NeotestElixirFormatter do
         output: save_test_output(test, config)
       }
 
-      IO.puts(config.results_io_device, json_encode!(output))
+      IO.inspect(:erlang.term_to_binary(output), label: "binary")
+      IO.binwrite(config.results_term_io_device, :erlang.term_to_binary(output))
+      IO.binwrite(config.results_term_io_device, "\n")
+      # IO.puts(config.results_io_device, json_encode!(output))
 
       {:noreply, config}
     catch
